@@ -1,7 +1,8 @@
 use poise::serenity_prelude as serenity;
 use dotenv::dotenv;
 mod commands;
-use crate::{ commands::general };
+mod structs;
+use crate::{ commands::general, structs::error_handling };
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
 
@@ -9,7 +10,7 @@ pub struct Data {
     
 }
 
-async fn on_error(error: poise::FrameworkError<'_, Data, Error>) {
+/*async fn on_error(error: poise::FrameworkError<'_, Data, Error>) {
     // This is our custom error handler
     // They are many errors that can occur, so we only handle the ones we want to customize
     // and forward the rest to the default handler
@@ -24,7 +25,7 @@ async fn on_error(error: poise::FrameworkError<'_, Data, Error>) {
             }
         }
     }
-}
+} */
 
 pub async fn listener(
     ctx: &serenity::Context,
@@ -56,7 +57,7 @@ async fn main() {
             mention_as_prefix: true,
             ..Default::default()
         },
-        on_error: |error| Box::pin(on_error(error)),
+        on_error: |error| Box::pin(error_handling::on_error(error)),
         pre_command: |ctx| {
             Box::pin(async move {
                 println!("Executing command {}...", ctx.command().qualified_name);
