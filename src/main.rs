@@ -1,17 +1,17 @@
 use poise::serenity_prelude as serenity;
-use serenity::{
-    Context,
-    Error
-};
-use dotenv;
+use dotenv::dotenv;
+type Error = Box<dyn std::error::Error + Send + Sync>;
+type Context<'a> = poise::Context<'a, Data, Error>;
+//use std::{collections::HashMap, sync::Mutex};
 
 pub struct Data {
-
+    
 }
 
 #[poise::command(prefix_command)]
 pub async fn say(
     ctx: Context<'_>,
+    #[rest]
     #[description = "Text to say"]
     msg: String,
 ) -> Result<(), Error> {
@@ -36,9 +36,25 @@ async fn on_error(error: poise::FrameworkError<'_, Data, Error>) {
     }
 }
 
+pub async fn listener(
+    ctx: &serenity::Context,
+    event: &poise::Event<'_>,
+    _data: &Data,
+) -> Result<(), Error> {
+    match event {
+        poise::Event::Ready { .. } => {
+            ctx.set_activity(serenity::Activity::watching("for /remind")).await;
+            println!("Bot is Online");
+        }
+        _ => {}
+    }
+
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() {
-    dotenv::dotenv();
+    dotenv().expect("Missing .env file.");
 
     let options = poise::FrameworkOptions {
         commands: vec![
@@ -47,9 +63,28 @@ async fn main() {
         prefix_options: poise::PrefixFrameworkOptions {
             prefix: Some("dev".into()),
             ignore_bots: true,
+            mention_as_prefix: true,
             ..Default::default()
         },
         on_error: |error| Box::pin(on_error(error)),
+        pre_command: |ctx| {
+            Box::pin(async move {
+                println!("Executing command {}...", ctx.command().qualified_name);
+            })
+        },
+        post_command: |ctx| {
+            Box::pin(async move {
+                println!("Executed command {}!", ctx.command().qualified_name);
+            })
+        },
+        event_handler: | ctx, event, _framework, data| {
+            Box::pin(async move {
+                println!("Got an event in event handler: {:?}", event.name());
+                listener(ctx, event, data).await?;
+                Ok(())
+            })
+        },
+        allowed_mentions: None,
         ..Default::default()
     };
 
@@ -67,9 +102,9 @@ async fn main() {
     })
     .options(options)
     .intents(
-        serenity::GatewayIntents::MESSAGE_CONTENT | serenity::GatewayIntents::GUILD_MEMBERS,
+        serenity::GatewayIntents::MESSAGE_CONTENT | serenity::GatewayIntents::GUILD_MESSAGES | serenity::GatewayIntents::GUILD_MEMBERS | serenity::GatewayIntents::GUILDS
     )
-    .run()
+    .run_autosharded()
     .await
     .unwrap();
 }
