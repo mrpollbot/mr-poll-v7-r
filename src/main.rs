@@ -1,22 +1,12 @@
 use poise::serenity_prelude as serenity;
 use dotenv::dotenv;
+mod commands;
+use crate::{ commands::general };
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
-//use std::{collections::HashMap, sync::Mutex};
 
 pub struct Data {
     
-}
-
-#[poise::command(prefix_command)]
-pub async fn say(
-    ctx: Context<'_>,
-    #[rest]
-    #[description = "Text to say"]
-    msg: String,
-) -> Result<(), Error> {
-    ctx.say(msg).await?;
-    Ok(())
 }
 
 async fn on_error(error: poise::FrameworkError<'_, Data, Error>) {
@@ -43,7 +33,7 @@ pub async fn listener(
 ) -> Result<(), Error> {
     match event {
         poise::Event::Ready { .. } => {
-            ctx.set_activity(serenity::Activity::watching("for /remind")).await;
+            ctx.set_activity(serenity::Activity::watching("for /poll")).await;
             println!("Bot is Online");
         }
         _ => {}
@@ -58,7 +48,7 @@ async fn main() {
 
     let options = poise::FrameworkOptions {
         commands: vec![
-            say()
+            general::help()
         ],
         prefix_options: poise::PrefixFrameworkOptions {
             prefix: Some("dev".into()),
