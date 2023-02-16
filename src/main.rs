@@ -1,46 +1,18 @@
-use poise::serenity_prelude as serenity;
+use poise::serenity_prelude::{self as serenity, UserId};
 use dotenv::dotenv;
 mod commands;
 mod structs;
-use crate::{ commands::general, structs::error_handling };
+use crate::{ 
+    commands::general, 
+    structs::error_handling,
+    structs::event_listner::listener, 
+};
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
 
+const OWNERS_IDS: Vec<UserId> = vec![579466943170609153, 402888568579686401];
 pub struct Data {
     
-}
-
-/*async fn on_error(error: poise::FrameworkError<'_, Data, Error>) {
-    // This is our custom error handler
-    // They are many errors that can occur, so we only handle the ones we want to customize
-    // and forward the rest to the default handler
-    match error {
-        poise::FrameworkError::Setup { error, .. } => panic!("Failed to start bot: {:?}", error),
-        poise::FrameworkError::Command { error, ctx } => {
-            println!("Error in command `{}`: {:?}", ctx.command().name, error,);
-        }
-        error => {
-            if let Err(e) = poise::builtins::on_error(error).await {
-                println!("Error while handling error: {}", e)
-            }
-        }
-    }
-} */
-
-pub async fn listener(
-    ctx: &serenity::Context,
-    event: &poise::Event<'_>,
-    _data: &Data,
-) -> Result<(), Error> {
-    match event {
-        poise::Event::Ready { .. } => {
-            ctx.set_activity(serenity::Activity::watching("for /poll")).await;
-            println!("Bot is Online");
-        }
-        _ => {}
-    }
-
-    Ok(())
 }
 
 #[tokio::main]
@@ -75,6 +47,17 @@ async fn main() {
                 Ok(())
             })
         },
+        command_check: Some(|ctx| {
+            Box::pin(async move {
+                if ctx.command().owners_only {
+                    if OWNERS_IDS.contains(&ctx.author().id) {
+                        return Ok(true)
+                    }
+                    return Ok(false)
+                }
+                Ok(true)
+            })
+        }),
         allowed_mentions: None,
         ..Default::default()
     };
